@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -eo pipefail
+
+POSTGRESQL_USERNAME=${POSTGRESQL_USERNAME:-postgres}
+POSTGRESQL_PASSWORD=${POSTGRESQL_PASSWORD:-${POSTGRESQL_ROOT_PASSWORD}}
+
+CHECK="$(echo 'SELECT 1;' | psql --host=127.0.0.1 --username=${POSTGRESQL_USERNAME} --password=${POSTGRESQL_PASSWORD} 2>/dev/null | head -n1)"
+
+if [[ "${CHECK}" == "1" ]]
+then
+  exit 0
+fi
+
+exit 1

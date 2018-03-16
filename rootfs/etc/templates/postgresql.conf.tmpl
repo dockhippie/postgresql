@@ -1,0 +1,12 @@
+data_directory = '/var/lib/postgresql'
+hba_file = '/etc/postgresql/pg_hba.conf'
+ident_file = '/etc/postgresql/pg_ident.conf'
+
+listen_addresses = '*'
+port = 5432
+
+max_connections = {{ envInt "MAX_CONNECTIONS" }}
+superuser_reserved_connections = {{ envInt "SUPERUSER_CONNECTIONS" }}
+
+log_destination = 'stderr'
+include_dir = 'conf.d'

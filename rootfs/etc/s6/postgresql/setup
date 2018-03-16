@@ -1,0 +1,69 @@
+#!/bin/bash
+
+mkdir -p \
+  /var/run/postgresql \
+  /var/lib/postgresql
+
+declare -x POSTGRESQL_ROOT_PASSWORD
+[[ -z "${POSTGRESQL_ROOT_PASSWORD}" ]] && POSTGRESQL_ROOT_PASSWORD=""
+
+declare -x POSTGRESQL_USERNAME
+[[ -z "${POSTGRESQL_USERNAME}" ]] && POSTGRESQL_USERNAME=""
+
+declare -x POSTGRESQL_PASSWORD
+[[ -z "${POSTGRESQL_PASSWORD}" ]] && POSTGRESQL_PASSWORD="${POSTGRESQL_ROOT_PASSWORD}"
+
+declare -x POSTGRESQL_DATABASE
+[[ -z "${POSTGRESQL_DATABASE}" ]] && POSTGRESQL_DATABASE="${POSTGRESQL_USERNAME}"
+
+declare -x POSTGRESQL_MAX_CONNECTIONS
+[[ -z "${POSTGRESQL_MAX_CONNECTIONS}" ]] && POSTGRESQL_MAX_CONNECTIONS="100"
+
+declare -x POSTGRESQL_SUPERUSER_CONNECTIONS
+[[ -z "${POSTGRESQL_SUPERUSER_CONNECTIONS}" ]] && POSTGRESQL_SUPERUSER_CONNECTIONS="3"
+
+declare -x POSTGRESQL_AUTH_METHOD
+[[ -z "${POSTGRESQL_AUTH_METHOD}" ]] && POSTGRESQL_AUTH_METHOD="md5"
+
+declare -x POSTGRESQL_INITDB_LOCALE
+[[ -z "${POSTGRESQL_INITDB_LOCALE}" ]] && POSTGRESQL_INITDB_LOCALE="en_US.UTF-8"
+
+declare -x POSTGRESQL_ADDITIONAL_HBA
+[[ -z "${POSTGRESQL_ADDITIONAL_HBA}" ]] && POSTGRESQL_ADDITIONAL_HBA=""
+
+declare -x POSTGRESQL_ADDITIONAL_IDENT
+[[ -z "${POSTGRESQL_ADDITIONAL_IDENT}" ]] && POSTGRESQL_ADDITIONAL_IDENT=""
+
+/usr/bin/templater -d -p postgresql \
+  -o /etc/postgresql/postgresql.conf \
+  /etc/templates/postgresql.conf.tmpl
+
+if [[ $? -ne 0 ]]
+then
+  /bin/s6-svscanctl -t /etc/s6
+fi
+
+/usr/bin/templater -d -p postgresql \
+  -o /etc/postgresql/pg_hba.conf \
+  /etc/templates/pg_hba.conf.tmpl
+
+if [[ $? -ne 0 ]]
+then
+  /bin/s6-svscanctl -t /etc/s6
+fi
+
+/usr/bin/templater -d -p postgresql \
+  -o /etc/postgresql/pg_ident.conf \
+  /etc/templates/pg_ident.conf.tmpl
+
+if [[ $? -ne 0 ]]
+then
+  /bin/s6-svscanctl -t /etc/s6
+fi
+
+chmod 775 \
+  /var/run/postgresql
+
+chown -R postgres:postgres \
+  /var/run/postgresql \
+  /var/lib/postgresql

@@ -1,0 +1,56 @@
+#!/bin/bash
+
+DATABASES=$(postgresql --password=${POSTGRESQL_ROOT_PASSWORD} --username=postgres --list | sed 1d)
+MAXIMUM=14
+
+if [ "${DATABASES}" == "" ]
+then
+  exit
+fi
+
+if [ ! -d /var/lib/backup ]
+then
+  mkdir -p /var/lib/backup
+  chmod 740 /var/lib/backup
+fi
+
+cd /tmp
+
+for DATABASE in ${DATABASES}
+do
+  if [ -f /tmp/postgresql-${DATABASE}.sql ]
+  then
+    rm -f /tmp/postgresql-${DATABASE}.sql
+  fi
+
+  pg_dump --password=${POSTGRESQL_ROOT_PASSWORD} --username=postgres --dbname=${DATABASE} --file=/tmp/postgresql-${DATABASE}.sql
+done
+
+for (( COUNTER=$MAXIMUM; COUNTER>=1; COUNTER-- ))
+do
+  if [ -d /var/lib/backup/backup.${COUNTER} ]
+  then
+    DEST=`expr $COUNTER + 1`
+
+    if [ $DEST -le $MAXIMUM ]
+    then
+      rm -rf /var/lib/backup/backup.${DEST}
+      mv /var/lib/backup/backup.${COUNTER} /var/lib/backup/backup.${DEST}
+    fi
+  fi
+done
+
+mkdir -p /var/lib/backup/backup.1
+chmod 740 /var/lib/backup/backup.1
+
+cd /var/lib/backup/backup.1
+
+for DATABASE in ${DATABASES}
+do
+  if [ -f /tmp/postgresql-${DATABASE}.sql ]
+  then
+    gzip /tmp/postgresql-${DATABASE}.sql
+    mv /tmp/postgresql-${DATABASE}.sql.gz ${DATABASE}.sql.gz
+    chmod 640 ${DATABASE}.sql.gz
+  fi
+done
