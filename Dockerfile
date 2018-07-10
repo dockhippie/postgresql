@@ -15,7 +15,8 @@ RUN apk update && \
     /var/lib/postgresql && \
   apk add \
     postgresql \
-    postgresql-client && \
+    postgresql-client \
+    postgresql-contrib && \
   rm -rf \
     /var/cache/apk/* \
     /var/lib/postgresql/*
