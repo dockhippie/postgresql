@@ -34,27 +34,27 @@ declare -x POSTGRESQL_ADDITIONAL_HBA
 declare -x POSTGRESQL_ADDITIONAL_IDENT
 [[ -z "${POSTGRESQL_ADDITIONAL_IDENT}" ]] && POSTGRESQL_ADDITIONAL_IDENT=""
 
-/usr/bin/templater -d -p postgresql \
+/usr/bin/gomplate -V \
   -o /etc/postgresql/postgresql.conf \
-  /etc/templates/postgresql.conf.tmpl
+  -f /etc/templates/postgresql.conf.tmpl
 
 if [[ $? -ne 0 ]]
 then
   /bin/s6-svscanctl -t /etc/s6
 fi
 
-/usr/bin/templater -d -p postgresql \
+/usr/bin/gomplate -V \
   -o /etc/postgresql/pg_hba.conf \
-  /etc/templates/pg_hba.conf.tmpl
+  -f /etc/templates/pg_hba.conf.tmpl
 
 if [[ $? -ne 0 ]]
 then
   /bin/s6-svscanctl -t /etc/s6
 fi
 
-/usr/bin/templater -d -p postgresql \
+/usr/bin/gomplate -V \
   -o /etc/postgresql/pg_ident.conf \
-  /etc/templates/pg_ident.conf.tmpl
+  -f /etc/templates/pg_ident.conf.tmpl
 
 if [[ $? -ne 0 ]]
 then

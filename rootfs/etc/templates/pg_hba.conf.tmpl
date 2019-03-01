@@ -1,3 +1,3 @@
 local all all trust
-host all all all {{ envString "AUTH_METHOD" }}
-{{ envString "ADDITIONAL_HBA" }}
+host all all all {{ getenv "POSTGRESQL_AUTH_METHOD" }}
+{{ getenv "POSTGRESQL_ADDITIONAL_HBA" }}
