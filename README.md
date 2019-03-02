@@ -1,5 +1,6 @@
 # PostgreSQL
 
+[![Build Status](https://cloud.drone.io/api/badges/dockhippie/postgresql/status.svg)](https://cloud.drone.io/dockhippie/postgresql)
 [![](https://images.microbadger.com/badges/image/webhippie/postgresql.svg)](https://microbadger.com/images/webhippie/postgresql "Get your own image badge on microbadger.com")
 
 These are docker images for [PostgreSQL](https://www.postgresql.org/) database running on an [Alpine Linux container](https://registry.hub.docker.com/u/webhippie/alpine/).
@@ -7,7 +8,7 @@ These are docker images for [PostgreSQL](https://www.postgresql.org/) database r
 
 ## Versions
 
-* [latest](https://github.com/dockhippie/postgresql/tree/master) available as ```webhippie/postgresql:latest``` at [Docker Hub](https://registry.hub.docker.com/u/webhippie/postgresql/)
+* [latest](./latest) available as `webhippie/postgresql:latest`
 
 
 ## Volumes
@@ -40,9 +41,7 @@ POSTGRESQL_ADDITIONAL_IDENT
 
 ## Inherited environment variables
 
-```bash
-ENV CRON_ENABLED true
-```
+* [webhippie/alpine](https://github.com/dockhippie/alpine#available-environment-variables)
 
 
 ## Contributing
@@ -63,5 +62,5 @@ MIT
 ## Copyright
 
 ```
-Copyright (c) 2015-2017 Thomas Boerger <http://www.webhippie.de>
+Copyright (c) 2015 Thomas Boerger <http://www.webhippie.de>
 ```

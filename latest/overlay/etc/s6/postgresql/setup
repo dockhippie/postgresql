@@ -1,0 +1,56 @@
+#!/bin/bash
+source /usr/bin/entrypoint
+
+if [[ "${POSTGRESQL_SKIP_MKDIR}" != "true" ]]
+then
+  echo "> creating data directories"
+  mkdir -p \
+    /var/run/postgresql \
+    /var/lib/postgresql
+fi
+
+echo "> writing postgres config"
+/usr/bin/gomplate -V \
+  -o /etc/postgresql/postgresql.conf \
+  -f /etc/templates/postgresql.conf.tmpl
+
+if [[ $? -ne 0 ]]
+then
+  /bin/s6-svscanctl -t /etc/s6
+fi
+
+echo "> writing hba config"
+/usr/bin/gomplate -V \
+  -o /etc/postgresql/pg_hba.conf \
+  -f /etc/templates/pg_hba.conf.tmpl
+
+if [[ $? -ne 0 ]]
+then
+  /bin/s6-svscanctl -t /etc/s6
+fi
+
+echo "> writing ident config"
+/usr/bin/gomplate -V \
+  -o /etc/postgresql/pg_ident.conf \
+  -f /etc/templates/pg_ident.conf.tmpl
+
+if [[ $? -ne 0 ]]
+then
+  /bin/s6-svscanctl -t /etc/s6
+fi
+
+if [[ "${POSTGRESQL_SKIP_CHMOD}" != "true" ]]
+then
+  echo "> chmod run directory"
+  chmod 775 \
+    /var/run/postgresql
+fi
+
+if [[ "${POSTGRESQL_SKIP_CHOWN}" != "true" ]]
+then
+  echo "> chown run directory"
+  find /var/run/postgresql \( \! -user postgres -o \! -group postgres \) -print0 | xargs -0 -r chown postgres:postgres
+
+  echo "> chown data directory"
+  find /var/lib/postgresql \( \! -user postgres -o \! -group postgres \) -print0 | xargs -0 -r chown postgres:postgres
+fi

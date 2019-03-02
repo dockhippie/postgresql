@@ -1,8 +1,4 @@
-#!/bin/bash
-
-mkdir -p \
-  /var/run/postgresql \
-  /var/lib/postgresql
+#!/usr/bin/env bash
 
 declare -x POSTGRESQL_ROOT_PASSWORD
 [[ -z "${POSTGRESQL_ROOT_PASSWORD}" ]] && POSTGRESQL_ROOT_PASSWORD=""
@@ -34,36 +30,11 @@ declare -x POSTGRESQL_ADDITIONAL_HBA
 declare -x POSTGRESQL_ADDITIONAL_IDENT
 [[ -z "${POSTGRESQL_ADDITIONAL_IDENT}" ]] && POSTGRESQL_ADDITIONAL_IDENT=""
 
-/usr/bin/gomplate -V \
-  -o /etc/postgresql/postgresql.conf \
-  -f /etc/templates/postgresql.conf.tmpl
+declare -x POSTGRESQL_SKIP_MKDIR
+[[ -z "${POSTGRESQL_SKIP_MKDIR}" ]] && POSTGRESQL_SKIP_MKDIR="false"
 
-if [[ $? -ne 0 ]]
-then
-  /bin/s6-svscanctl -t /etc/s6
-fi
+declare -x POSTGRESQL_SKIP_CHMOD
+[[ -z "${POSTGRESQL_SKIP_CHMOD}" ]] && POSTGRESQL_SKIP_CHMOD="false"
 
-/usr/bin/gomplate -V \
-  -o /etc/postgresql/pg_hba.conf \
-  -f /etc/templates/pg_hba.conf.tmpl
-
-if [[ $? -ne 0 ]]
-then
-  /bin/s6-svscanctl -t /etc/s6
-fi
-
-/usr/bin/gomplate -V \
-  -o /etc/postgresql/pg_ident.conf \
-  -f /etc/templates/pg_ident.conf.tmpl
-
-if [[ $? -ne 0 ]]
-then
-  /bin/s6-svscanctl -t /etc/s6
-fi
-
-chmod 775 \
-  /var/run/postgresql
-
-chown -R postgres:postgres \
-  /var/run/postgresql \
-  /var/lib/postgresql
+declare -x POSTGRESQL_SKIP_CHOWN
+[[ -z "${POSTGRESQL_SKIP_CHOWN}" ]] && POSTGRESQL_SKIP_CHOWN="false"
