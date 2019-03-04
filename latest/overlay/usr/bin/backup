@@ -49,8 +49,8 @@ for DATABASE in ${DATABASES}
 do
   if [ -f /tmp/postgresql-${DATABASE}.sql ]
   then
-    gzip /tmp/postgresql-${DATABASE}.sql
-    mv /tmp/postgresql-${DATABASE}.sql.gz ${DATABASE}.sql.gz
+    mv /tmp/postgresql-${DATABASE}.sql ${DATABASE}.sql
+    gzip ${DATABASE}.sql
     chmod 640 ${DATABASE}.sql.gz
   fi
 done

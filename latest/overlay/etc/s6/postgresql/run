@@ -5,7 +5,20 @@ then
   source ./setup
 fi
 
-STARTCMD="su-exec postgres /usr/bin/postgres -D /etc/postgresql"
+if [ -f ./custom ]
+then
+  source ./custom
+fi
+
+if [ -d ./custom.d ]
+then
+  for FILE in $(find ./custom.d -type f -iname *.sh | sort)
+  do
+    source ${FILE}
+  done
+fi
+
+STARTCMD="su-exec postgres postgres -D /etc/postgresql"
 
 if [ ! -f "/var/lib/postgresql/PG_VERSION" ]
 then
@@ -16,35 +29,35 @@ then
     exit 1
   fi
 
-  echo "Running initdb..."
+  echo "> execute initdb command"
   su-exec postgres initdb --username=postgres --pgdata=/var/lib/postgresql --locale=${POSTGRESQL_INITDB_LOCALE}
 
-  echo "Locally start..."
+  echo "> start local service"
   su-exec postgres pg_ctl -D /etc/postgresql -o "-c listen_addresses='localhost'" -w start
 
   psql=(psql -v ON_ERROR_STOP=1)
 
-  echo "Setting password..."
+  echo "> setting postgres password"
   "${psql[@]}" --username postgres -c "ALTER USER postgres WITH SUPERUSER PASSWORD '${POSTGRESQL_ROOT_PASSWORD}';"
 
   if [ -n "${POSTGRESQL_DATABASE}" ]
   then
     if [[ "${POSTGRESQL_DATABASE}" != "postgres" ]]
     then
-      echo "Creating database..."
+      echo "> creating defined database"
       "${psql[@]}" --username postgres -c "CREATE DATABASE "${POSTGRESQL_DATABASE}";"
     fi
 
     if [ -n "${POSTGRESQL_USERNAME}" ]
     then
-      echo "Creating user..."
+      echo "> creating additional user"
       "${psql[@]}" --username postgres -c "CREATE USER ${POSTGRESQL_USERNAME} WITH SUPERUSER PASSWORD '${POSTGRESQL_PASSWORD}';"
     fi
   fi
 
-  echo "Locally stop..."
+  echo "> stop local service"
   su-exec postgres pg_ctl -D /etc/postgresql -m fast -w stop
 fi
 
-echo "Starting PostgreSQL daemon..."
+echo "> starting postgresql service"
 exec ${STARTCMD}
