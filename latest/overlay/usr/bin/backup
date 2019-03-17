@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DATABASES=$(postgresql --password=${POSTGRESQL_ROOT_PASSWORD} --username=postgres --list | sed 1d)
+DATABASES=$(PGPASSWORD=${POSTGRESQL_ROOT_PASSWORD} psql --username=postgres -w -A -t -c "SELECT datname FROM pg_database" | grep -v -E "(postgres|template0|template1)")
 MAXIMUM=14
 
 if [ "${DATABASES}" == "" ]
@@ -23,7 +23,7 @@ do
     rm -f /tmp/postgresql-${DATABASE}.sql
   fi
 
-  pg_dump --password=${POSTGRESQL_ROOT_PASSWORD} --username=postgres --dbname=${DATABASE} --file=/tmp/postgresql-${DATABASE}.sql
+  PGPASSWORD=${POSTGRESQL_ROOT_PASSWORD} pg_dump -w --username=postgres --dbname=${DATABASE} --file=/tmp/postgresql-${DATABASE}.sql
 done
 
 for (( COUNTER=$MAXIMUM; COUNTER>=1; COUNTER-- ))
