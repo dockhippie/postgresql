@@ -12,6 +12,14 @@ def main(ctx):
         'path': 'latest',
         'tag': 'latest',
       },
+      {
+        'path': 'v12',
+        'tag': '12',
+      },
+      {
+        'path': 'v11',
+        'tag': '11',
+      },
     ],
     'trigger': [
 
