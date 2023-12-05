@@ -1,4 +1,4 @@
-FROM webhippie/alpine:3.10-arm32v6
+FROM webhippie/alpine:3.12-arm32v6
 
 LABEL maintainer="Thomas Boerger <thomas@webhippie.de>" \
   org.label-schema.name="PostgreSQL" \
