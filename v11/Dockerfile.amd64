@@ -1,4 +1,4 @@
-FROM webhippie/alpine:3.22-amd64@sha256:ba7a1e932a6354f117d5ac27c7cdfb86902c31f7b0a6bdb545672731f24a52f1
+FROM webhippie/alpine:3.22-amd64@sha256:638bbc01ef8eac77233c8d0cc6c7b533cfb6ce01febfd98d8702be4de789b916
 
 LABEL maintainer="Thomas Boerger <thomas@webhippie.de>" \
   org.label-schema.name="PostgreSQL" \
