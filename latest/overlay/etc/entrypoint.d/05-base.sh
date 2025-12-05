@@ -38,3 +38,5 @@ declare -x POSTGRESQL_SKIP_CHMOD
 
 declare -x POSTGRESQL_SKIP_CHOWN
 [[ -z "${POSTGRESQL_SKIP_CHOWN}" ]] && POSTGRESQL_SKIP_CHOWN="false"
+
+true

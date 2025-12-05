@@ -1,7 +1,13 @@
 ---
+# yaml-language-server: $schema=https://www.schemastore.org/github-workflow.json
 name: latest
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 "on":
+  workflow_dispatch:
   push:
     branches:
       - master
@@ -11,19 +17,29 @@ name: latest
   pull_request:
     branches:
       - master
-    paths:
-      - latest/*
-      - .github/workflows/docker.yml
-  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   docker:
     runs-on: ubuntu-latest
 
+    strategy:
+      fail-fast: false
+      matrix:
+        variant:
+          - arch: amd64
+            platform: linux/amd64
+          - arch: arm64
+            platform: linux/arm64
+          - arch: arm
+            platform: linux/arm/v6
+
     steps:
       - name: Checkout source
-        id: source
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
       - name: Docker meta
         id: meta
@@ -39,7 +55,6 @@ jobs:
             maintainer=Thomas Boerger <thomas@webhippie.de>
 
       - name: Setup QEMU
-        id: qemu
         uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
 
       - name: Setup Buildx
@@ -47,7 +62,6 @@ jobs:
         uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3
 
       - name: Hub login
-        id: login1
         uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3
         if: github.event_name != 'pull_request'
         with:
@@ -55,7 +69,6 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Quay login
-        id: login2
         uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3
         if: github.event_name != 'pull_request'
         with:
@@ -64,7 +77,6 @@ jobs:
           password: ${{ secrets.QUAY_PASSWORD }}
 
       - name: Ghcr login
-        id: login3
         uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3
         if: github.event_name != 'pull_request'
         with:
@@ -72,58 +84,36 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build amd64
-        id: amd64
+      - name: Build image
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6
         with:
           builder: ${{ steps.buildx.outputs.name }}
           context: latest/
           provenance: false
-          file: latest/Dockerfile.amd64
-          platforms: linux/amd64
+          file: latest/Dockerfile.${{ matrix.variant.arch }}
+          platforms: ${{ matrix.variant.platform }}
           push: ${{ github.event_name != 'pull_request' }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: |
-            webhippie/postgresql:latest-amd64
-            quay.io/webhippie/postgresql:latest-amd64
-            ghcr.io/dockhippie/postgresql:latest-amd64
+            webhippie/postgresql:latest-${{ matrix.variant.arch }}
+            quay.io/webhippie/postgresql:latest-${{ matrix.variant.arch }}
+            ghcr.io/dockhippie/postgresql:latest-${{ matrix.variant.arch }}
 
-      - name: Build arm64
-        id: arm64
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6
-        with:
-          builder: ${{ steps.buildx.outputs.name }}
-          context: latest/
-          provenance: false
-          file: latest/Dockerfile.arm64
-          platforms: linux/arm64
-          push: ${{ github.event_name != 'pull_request' }}
-          labels: ${{ steps.meta.outputs.labels }}
-          tags: |
-            webhippie/postgresql:latest-arm64
-            quay.io/webhippie/postgresql:latest-arm64
-            ghcr.io/dockhippie/postgresql:latest-arm64
+  manifest:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
 
-      - name: Build arm
-        id: arm
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6
-        with:
-          builder: ${{ steps.buildx.outputs.name }}
-          context: latest/
-          provenance: false
-          file: latest/Dockerfile.arm
-          platforms: linux/arm/v6
-          push: ${{ github.event_name != 'pull_request' }}
-          labels: ${{ steps.meta.outputs.labels }}
-          tags: |
-            webhippie/postgresql:latest-arm
-            quay.io/webhippie/postgresql:latest-arm
-            ghcr.io/dockhippie/postgresql:latest-arm
+    needs:
+      - docker
+
+    steps:
+      - name: Wait something
+        run: sleep 60
 
       - name: Hub manifest
-        id: manifest1
         uses: actionhippie/manifest@f1b9778cbe1f3af13fcb3ce7e5cf8b46ef7bfa1b # v1
-        if: github.event_name != 'pull_request'
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -133,9 +123,7 @@ jobs:
           ignore_missing: true
 
       - name: Quay manifest
-        id: manifest2
         uses: actionhippie/manifest@f1b9778cbe1f3af13fcb3ce7e5cf8b46ef7bfa1b # v1
-        if: github.event_name != 'pull_request'
         with:
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_PASSWORD }}
@@ -145,9 +133,7 @@ jobs:
           ignore_missing: true
 
       - name: Ghcr manifest
-        id: manifest3
         uses: actionhippie/manifest@f1b9778cbe1f3af13fcb3ce7e5cf8b46ef7bfa1b # v1
-        if: github.event_name != 'pull_request'
         with:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+set -eo pipefail
+source /usr/bin/entrypoint
+
+for FILE in $(find /etc/container.d -type f -iname \*.sh | sort); do
+    source ${FILE}
+done
+
+pushd /var/lib/postgresql >/dev/null
+    STARTCMD="su-exec postgres postgres -D /etc/postgresql"
+
+    if [ ! -f "/var/lib/postgresql/PG_VERSION" ]; then
+        if [ -z "${POSTGRESQL_ROOT_PASSWORD}" ]; then
+            echo >&2 "Error: Database is uninitialized and POSTGRESQL_ROOT_PASSWORD not set"
+            exit 1
+        fi
+
+        echo "> running initdb..."
+        su-exec postgres initdb --username=postgres --pgdata=/var/lib/postgresql --locale=${POSTGRESQL_INITDB_LOCALE}
+        echo "> finished initdb"
+
+        echo "> start local service"
+        su-exec postgres pg_ctl -D /etc/postgresql -o "-c listen_addresses='localhost'" -w start
+
+        PSQL=(psql -v ON_ERROR_STOP=1)
+
+        echo "> setting postgres password"
+        "${PSQL[@]}" --username postgres -c "ALTER USER postgres WITH SUPERUSER PASSWORD '${POSTGRESQL_ROOT_PASSWORD}';"
+
+        if [[ -n "${POSTGRESQL_DATABASE}" ]]; then
+            if [[ "${POSTGRESQL_DATABASE}" != "postgres" ]]; then
+                echo "> creating defined database"
+                "${PSQL[@]}" --username postgres -c "CREATE DATABASE "${POSTGRESQL_DATABASE}";"
+            fi
+
+            if [ -n "${POSTGRESQL_USERNAME}" ]; then
+                echo "> creating additional user"
+                "${PSQL[@]}" --username postgres -c "CREATE USER ${POSTGRESQL_USERNAME} WITH SUPERUSER PASSWORD '${POSTGRESQL_PASSWORD}';"
+            fi
+        fi
+
+        for FILE in $(find /etc/postgresql/init.d -type f -iname \*.sh | sort); do
+            source ${FILE}
+        done
+
+        echo "> stop local service"
+        su-exec postgres pg_ctl -D /etc/postgresql -m fast -w stop
+    fi
+
+    echo "> starting postgresql service"
+    exec ${STARTCMD}
+popd >/dev/null

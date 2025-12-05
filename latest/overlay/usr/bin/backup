@@ -1,56 +1,41 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -eo pipefail
+source /usr/bin/entrypoint
 
-DATABASES=$(PGPASSWORD=${POSTGRESQL_ROOT_PASSWORD} psql --username=postgres -w -A -t -c "SELECT datname FROM pg_database" | grep -v -E "(postgres|template0|template1)")
-MAXIMUM=14
+DATABASES=$(PGPASSWORD=${POSTGRESQL_ROOT_PASSWORD} psql --username=postgres -w -A -t -c "SELECT datname FROM pg_database" | grep -v -E "${POSTGRESQL_BACKUP_IGNORE}")
+MAXIMUM=${POSTGRESQL_BACKUP_RETENTION}
 
-if [ "${DATABASES}" == "" ]
-then
-  exit
+if [ "${DATABASES}" == "" ]; then
+    exit
 fi
 
-if [ ! -d /var/lib/backup ]
-then
-  mkdir -p /var/lib/backup
-  chmod 740 /var/lib/backup
+if [ ! -d ${POSTGRESQL_BACKUP_PATH} ]; then
+    mkdir -p ${POSTGRESQL_BACKUP_PATH}
+    chmod u=rwx,g=rwx,o= ${POSTGRESQL_BACKUP_PATH}
 fi
 
-cd /tmp
+for (( COUNTER=${MAXIMUM}; COUNTER>=1; COUNTER-- )); do
+    if [ -d ${POSTGRESQL_BACKUP_PATH}/backup.${COUNTER} ]; then
+        DEST=`expr ${COUNTER} + 1`
 
-for DATABASE in ${DATABASES}
-do
-  if [ -f /tmp/postgresql-${DATABASE}.sql ]
-  then
-    rm -f /tmp/postgresql-${DATABASE}.sql
-  fi
-
-  PGPASSWORD=${POSTGRESQL_ROOT_PASSWORD} pg_dump -w --username=postgres --dbname=${DATABASE} --file=/tmp/postgresql-${DATABASE}.sql
-done
-
-for (( COUNTER=$MAXIMUM; COUNTER>=1; COUNTER-- ))
-do
-  if [ -d /var/lib/backup/backup.${COUNTER} ]
-  then
-    DEST=`expr $COUNTER + 1`
-
-    if [ $DEST -le $MAXIMUM ]
-    then
-      rm -rf /var/lib/backup/backup.${DEST}
-      mv /var/lib/backup/backup.${COUNTER} /var/lib/backup/backup.${DEST}
+        if [ ${DEST} -le ${MAXIMUM} ]; then
+            rm -rf ${POSTGRESQL_BACKUP_PATH}/backup.${DEST}
+            mv ${POSTGRESQL_BACKUP_PATH}/backup.${COUNTER} ${POSTGRESQL_BACKUP_PATH}/backup.${DEST}
+        fi
     fi
-  fi
 done
 
-mkdir -p /var/lib/backup/backup.1
-chmod 740 /var/lib/backup/backup.1
+mkdir -p ${POSTGRESQL_BACKUP_PATH}/backup.1
+chmod u=rwx,g=rwx,o= ${POSTGRESQL_BACKUP_PATH}/backup.1
 
-cd /var/lib/backup/backup.1
+cd ${POSTGRESQL_BACKUP_PATH}/backup.1
 
-for DATABASE in ${DATABASES}
-do
-  if [ -f /tmp/postgresql-${DATABASE}.sql ]
-  then
-    mv /tmp/postgresql-${DATABASE}.sql ${DATABASE}.sql
+for DATABASE in ${DATABASES}; do
+    echo "Starting backup for ${DATABASE}..."
+    START=$(date +%s)
+    PGPASSWORD=${POSTGRESQL_ROOT_PASSWORD} pg_dump -w --username=postgres --dbname=${DATABASE} --file=${DATABASE}.sql
     gzip ${DATABASE}.sql
-    chmod 640 ${DATABASE}.sql.gz
-  fi
+    chmod u=rwx,g=rwx,o= "${DATABASE}.sql.gz"
+    ENDS=$(date +%s)
+    echo "Done within $((${ENDS}-${START}))s"
 done
