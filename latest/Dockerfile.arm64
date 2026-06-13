@@ -1,4 +1,4 @@
-FROM ghcr.io/dockhippie/alpine:3.23-arm64@sha256:a315f113b1b87f2552175e9d73be99274b9f04695b9b2df9f2be86a5f3407996
+FROM ghcr.io/dockhippie/alpine:3.23-arm64@sha256:a3c8e88f26c00d452284f82f7e3533affa04d67c4fa9276ee9a09b91a7c08c04
 
 VOLUME ["/var/lib/postgresql", "/var/lib/backup", "/etc/postgresql/init.d", "/etc/postgresql/conf.d"]
 EXPOSE 5432
